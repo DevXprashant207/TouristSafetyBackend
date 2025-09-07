@@ -1,0 +1,73 @@
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
+
+const authRoutes = require('./routes/auth');
+const alertRoutes = require('./routes/alerts');
+const blockchainRoutes = require('./routes/blockchain');
+const dashboardRoutes = require('./routes/dashboard');
+const { errorHandler } = require('./middleware/errorHandler');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Security middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:8081', 'exp://'],
+  credentials: true,
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: {
+    success: false,
+    error: 'Too many requests from this IP, please try again later.',
+  },
+});
+app.use(limiter);
+
+// Body parser
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    },
+  });
+});
+
+// API routes
+app.use('/api/auth', authRoutes);// done
+app.use('/api/alerts', alertRoutes);
+app.use('/api/blockchain', blockchainRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Route not found',
+  });
+});
+
+// Error handler
+app.use(errorHandler);
+
+app.listen(PORT, () => {
+  console.log(`🚀 Tourist Safety Backend running on port http://localhost:${PORT}`);
+  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔐 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+module.exports = app;
