@@ -46,7 +46,21 @@ app.get('/health', (req, res) => {
     },
   });
 });
+// gps data
+let logs = []; // will hold coordinates
+// Receive GPS from ESP32
+app.post("/gps", (req, res) => {
+  console.log("hello form gps");
+  const { lat, lon, tag, time } = req.body;
+  logs.push({ lat, lon, tag, time });
+  console.log("Received:", { lat, lon, tag, time });
+  res.json({ status: "ok" });
+});
 
+// Serve data to frontend
+app.get("/data", (req, res) => {
+  res.json(logs); // frontend can fetch this
+});
 // API routes
 app.use('/api/auth', authRoutes);// done
 app.use('/api/alerts', alertRoutes);
