@@ -47,14 +47,20 @@ app.get('/health', (req, res) => {
   });
 });
 // gps data
-let logs = []; // will hold coordinates
+let logs = [
+  { lat: 28.6139, lon: 77.2090, tag: "normal", time: "2025-09-08 21:00" },
+  { lat: 28.7041, lon: 77.1025, tag: "sos",    time: "2025-09-08 21:02" },
+  { lat: 19.0760, lon: 72.8777, tag: "normal", time: "2025-09-08 21:04" },
+  { lat: 12.9716, lon: 77.5946, tag: "normal", time: "2025-09-08 23:30" },
+  { lat: 22.5726, lon: 88.3639, tag: "sos",    time: "2025-09-08 23:35" }
+];
 // Receive GPS from ESP32
 app.post("/gps", (req, res) => {
   console.log("hello form gps");
   const { lat, lon, tag, time } = req.body;
   logs.push({ lat, lon, tag, time });
   console.log("Received:", { lat, lon, tag, time });
-  res.json({ status: "ok" });
+  res.json({ status: "ok", logs });
 });
 
 // Serve data to frontend
