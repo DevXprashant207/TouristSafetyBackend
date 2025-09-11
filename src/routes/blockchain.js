@@ -43,7 +43,7 @@ router.post('/issue', authenticateToken, issueValidation, async (req, res) => {
     const userId = req.user.userId;
 
     // Check if already issued
-    const existing = await BlockchainIssuance.findOne({ blockchainId });
+    const existing = await Blockchain.findOne({ blockchainId });
     if (existing) {
       return res.status(409).json({ success: false, error: 'This blockchain ID has already been issued' });
     }
@@ -55,9 +55,9 @@ router.post('/issue', authenticateToken, issueValidation, async (req, res) => {
     const contractAddress = '0x1234567890123456789012345678901234567890';
 
     // Count for tokenId
-    const tokenId = (await BlockchainIssuance.countDocuments()) + 1;
+    const tokenId = (await Blockchain.countDocuments()) + 1;
 
-    const issuance = new BlockchainIssuance({
+    const issuance = new Blockchain({
       userId,
       blockchainId,
       userInfo,
@@ -96,7 +96,7 @@ router.get('/verify/:blockchainId', async (req, res) => {
   try {
     const { blockchainId } = req.params;
 
-    const issuance = await BlockchainIssuance.findOne({ blockchainId });
+    const issuance = await Blockchain.findOne({ blockchainId });
     if (!issuance) {
       return res.status(404).json({ success: false, error: 'Blockchain identity not found' });
     }
@@ -124,7 +124,7 @@ router.get('/verify/:blockchainId', async (req, res) => {
 router.get('/issuances', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const issuances = await BlockchainIssuance.find({ userId }).sort({ createdAt: -1 });
+    const issuances = await Blockchain.find({ userId }).sort({ createdAt: -1 });
 
     res.json({ success: true, data: { issuances } });
 

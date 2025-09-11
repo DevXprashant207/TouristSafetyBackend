@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
-
+const { v4: uuidv4 } = require('uuid');
 const alertSchema = new mongoose.Schema({
+     id: { type: String, default: uuidv4 },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     type: { type: String, enum: ['PANIC_BUTTON', 'GEOFENCE_VIOLATION', 'AI_MONITORING'], required: true },
     severity: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH'], required: true },
