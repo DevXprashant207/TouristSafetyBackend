@@ -1,28 +1,33 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const mongoose = require("mongoose");
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
-
 const authRoutes = require('./routes/auth');
 const alertRoutes = require('./routes/alerts');
 const blockchainRoutes = require('./routes/blockchain');
 const dashboardRoutes = require('./routes/dashboard');
 const { errorHandler } = require('./middleware/errorHandler');
+// ✅ Connect to MongoDB
+mongoose
+  .connect("mongodb+srv://pt264doc_db_user:TWyK6GUm2uzk4EpO@cluster0.wtgkn57.mongodb.net/SmartTouristApp", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Security middleware
 app.use(helmet());
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:8081', 'exp://'],
-  credentials: true,
-}));
+app.use(cors());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 60 * 60 * 1000, // 60 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
   message: {
     success: false,
@@ -34,7 +39,6 @@ app.use(limiter);
 // Body parser
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
@@ -48,18 +52,16 @@ app.get('/health', (req, res) => {
 });
 // gps data
 let logs = [
-  { lat: 28.6139, lon: 77.2090, tag: "normal", time: "2025-09-08 21:00" },
-  { lat: 28.7041, lon: 77.1025, tag: "sos",    time: "2025-09-08 21:02" },
-  { lat: 19.0760, lon: 72.8777, tag: "normal", time: "2025-09-08 21:04" },
-  { lat: 12.9716, lon: 77.5946, tag: "normal", time: "2025-09-08 23:30" },
-  { lat: 22.5726, lon: 88.3639, tag: "sos",    time: "2025-09-08 23:35" }
+   { lat:  29.752810, lon: 78.498960, tag: "normal", timestamp: "2025-09-08 21:48" },
+  { lat:  26.752810, lon: 75.498960, tag: "sos", timestamp: "2025-09-08 21:00" },
+  { lat:   28.7041, lon: 77.1025, tag: "normal", timestamp: "2025-09-08 21:00" },
 ];
 // Receive GPS from ESP32
 app.post("/gps", (req, res) => {
   console.log("hello form gps");
-  const { lat, lon, tag, time } = req.body;
-  logs.push({ lat, lon, tag, time });
-  console.log("Received:", { lat, lon, tag, time });
+  const { lat, lon, tag, timestamp } = req.body;
+  logs.push({ lat, lon, tag, timestamp });
+  console.log("Received:", { lat, lon, tag, timestamp });
   res.json({ status: "ok", logs });
 });
 
@@ -84,10 +86,9 @@ app.use('*', (req, res) => {
 // Error handler
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Tourist Safety Backend running on port http://localhost:${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔐 Environment: ${process.env.NODE_ENV || 'development'}`);
+app.listen(3000, "0.0.0.0", () => {
+  console.log("Server running at http://192.168.1.10:3000");
 });
+
 
 module.exports = app;

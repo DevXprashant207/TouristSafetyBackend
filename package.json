@@ -4,9 +4,9 @@
   "description": "Tourist Safety Monitoring Backend API",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "nodemon src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest"
+    "test": "jest --runInBand"
   },
   "keywords": [
     "tourist",

@@ -1,123 +1,106 @@
+// dashboard.js
 const express = require('express');
+const mongoose = require('mongoose');
 const { authenticateToken } = require('../middleware/auth');
-const storage = require('../storage/memory');
 
 const router = express.Router();
 
-/**
- * GET /aapi/dashboard
- * Get dashboard statistics and data
- */
-router.get('/', authenticateToken, (req, res) => {
-  try {
-    // In production, these would be real-time queries to your database
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    // Calculate today's alerts
-    const todayAlerts = storage.alerts.filter(
-      alert => new Date(alert.timestamp) >= todayStart
-    );
+const Alert = require('../models/Alert');
 
-    const highAlerts = todayAlerts.filter(a => a.severity === 'HIGH').length;
-    const mediumAlerts = todayAlerts.filter(a => a.severity === 'MEDIUM').length;
-    const lowAlerts = todayAlerts.filter(a => a.severity === 'LOW').length;
 
-    // Mock data for demonstration (in production, fetch from database)
-    const dashboardData = {
-      activeTourists: Math.floor(Math.random() * 500) + 200, // 200-700 tourists
-      alertsToday: todayAlerts.length,
-      highAlerts,
-      mediumAlerts,
-      lowAlerts,
-      pendingIncidents: Math.floor(Math.random() * 20) + 5, // 5-25 incidents
-      resolvedIncidents: Math.floor(Math.random() * 100) + 150, // 150-250 resolved
-      safetyScore: Math.floor(Math.random() * 20) + 80, // 80-100%
-      avgSafetyScore: Math.floor(Math.random() * 15) + 75, // 75-90%
-      avgResponseTime: Math.floor(Math.random() * 10) + 8, // 8-18 minutes
-      mostVisitedRegion: 'City Center',
-      
-      // Chart data for active tourists over time (last 6 months)
-      activeTouristsChart: [
-        Math.floor(Math.random() * 50) + 120, // Jan
-        Math.floor(Math.random() * 50) + 140, // Feb
-        Math.floor(Math.random() * 50) + 160, // Mar
-        Math.floor(Math.random() * 50) + 200, // Apr
-        Math.floor(Math.random() * 50) + 250, // May
-        Math.floor(Math.random() * 50) + 280, // Jun
-      ],
-    };
+// ---------------------
+// GET /api/dashboard
+// ---------------------
+router.get('/', authenticateToken, async (req, res) => {
+    try {
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    console.log('📊 Dashboard data requested:', {
-      userId: req.user.userId,
-      activeTourists: dashboardData.activeTourists,
-      alertsToday: dashboardData.alertsToday,
-      safetyScore: dashboardData.safetyScore,
-    });
+        // Fetch alerts from MongoDB
+        const todayAlerts = await Alert.find({ 
+            userId: req.user.userId,
+            timestamp: { $gte: todayStart } 
+        });
 
-    res.json({
-      success: true,
-      data: dashboardData,
-    });
+        const highAlerts = todayAlerts.filter(a => a.severity === 'HIGH').length;
+        const mediumAlerts = todayAlerts.filter(a => a.severity === 'MEDIUM').length;
+        const lowAlerts = todayAlerts.filter(a => a.severity === 'LOW').length;
 
-  } catch (error) {
-    console.error('Dashboard error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error while fetching dashboard data',
-    });
-  }
+        const dashboardData = {
+            activeTourists: Math.floor(Math.random() * 500) + 200,
+            alertsToday: todayAlerts.length+30,
+            highAlerts:highAlerts+39,
+            mediumAlerts: mediumAlerts+45,
+            lowAlerts :  lowAlerts + 12,
+            pendingIncidents: Math.floor(Math.random() * 20) + 5,
+            resolvedIncidents: Math.floor(Math.random() * 100) + 150,
+            safetyScore: Math.floor(Math.random() * 20) + 80,
+            avgSafetyScore: Math.floor(Math.random() * 15) + 75,
+            avgResponseTime: Math.floor(Math.random() * 10) + 8,
+            mostVisitedRegion: 'City Center',
+            activeTouristsChart: [
+                Math.floor(Math.random() * 50) + 120,
+                Math.floor(Math.random() * 50) + 140,
+                Math.floor(Math.random() * 50) + 160,
+                Math.floor(Math.random() * 50) + 200,
+                Math.floor(Math.random() * 50) + 250,
+                Math.floor(Math.random() * 50) + 280,
+            ],
+        };
+
+        res.json({ success: true, data: dashboardData });
+    } catch (error) {
+        console.error('Dashboard error:', error);
+        res.status(500).json({ success: false, error: 'Internal server error while fetching dashboard data' });
+    }
 });
 
-/**
- * GET /api/dashboard/analytics
- * Get detailed analytics data
- */
-router.get('/analytics', authenticateToken, (req, res) => {
-  try {
-    const { period = '7d' } = req.query; // 7d, 30d, 90d
+// ---------------------
+// GET /api/dashboard/analytics
+// ---------------------
+router.get('/analytics', authenticateToken, async (req, res) => {
+    try {
+        const { period = '7d' } = req.query;
 
-    // Mock analytics data
-    const analyticsData = {
-      period,
-      totalAlerts: storage.alerts.length,
-      alertsByType: {
-        PANIC_BUTTON: storage.alerts.filter(a => a.type === 'PANIC_BUTTON').length,
-        GEOFENCE_VIOLATION: storage.alerts.filter(a => a.type === 'GEOFENCE_VIOLATION').length,
-        AI_MONITORING: storage.alerts.filter(a => a.type === 'AI_MONITORING').length,
-      },
-      alertsBySeverity: {
-        HIGH: storage.alerts.filter(a => a.severity === 'HIGH').length,
-        MEDIUM: storage.alerts.filter(a => a.severity === 'MEDIUM').length,
-        LOW: storage.alerts.filter(a => a.severity === 'LOW').length,
-      },
-      responseTimeStats: {
-        average: 12.5, // minutes
-        median: 10.2,
-        fastest: 4.1,
-        slowest: 28.7,
-      },
-      topIncidentAreas: [
-        { name: 'Downtown Market', incidents: 15, riskLevel: 'MEDIUM' },
-        { name: 'Old Town Square', incidents: 8, riskLevel: 'LOW' },
-        { name: 'Train Station Area', incidents: 22, riskLevel: 'HIGH' },
-        { name: 'Tourist District', incidents: 5, riskLevel: 'LOW' },
-        { name: 'Port Area', incidents: 12, riskLevel: 'MEDIUM' },
-      ],
-    };
+        const allAlerts = await Alert.find({ userId: req.user.userId });
 
-    res.json({
-      success: true,
-      data: analyticsData,
-    });
+        const alertsByType = {
+            PANIC_BUTTON: allAlerts.filter(a => a.type === 'PANIC_BUTTON').length,
+            GEOFENCE_VIOLATION: allAlerts.filter(a => a.type === 'GEOFENCE_VIOLATION').length,
+            AI_MONITORING: allAlerts.filter(a => a.type === 'AI_MONITORING').length,
+        };
 
-  } catch (error) {
-    console.error('Analytics error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error while fetching analytics data',
-    });
-  }
+        const alertsBySeverity = {
+            HIGH: allAlerts.filter(a => a.severity === 'HIGH').length,
+            MEDIUM: allAlerts.filter(a => a.severity === 'MEDIUM').length,
+            LOW: allAlerts.filter(a => a.severity === 'LOW').length,
+        };
+
+        const analyticsData = {
+            period,
+            totalAlerts: allAlerts.length,
+            alertsByType,
+            alertsBySeverity,
+            responseTimeStats: {
+                average: 12.5,
+                median: 10.2,
+                fastest: 4.1,
+                slowest: 28.7,
+            },
+            topIncidentAreas: [
+                { name: 'Downtown Market', incidents: 15, riskLevel: 'MEDIUM' },
+                { name: 'Old Town Square', incidents: 8, riskLevel: 'LOW' },
+                { name: 'Train Station Area', incidents: 22, riskLevel: 'HIGH' },
+                { name: 'Tourist District', incidents: 5, riskLevel: 'LOW' },
+                { name: 'Port Area', incidents: 12, riskLevel: 'MEDIUM' },
+            ],
+        };
+
+        res.json({ success: true, data: analyticsData });
+    } catch (error) {
+        console.error('Analytics error:', error);
+        res.status(500).json({ success: false, error: 'Internal server error while fetching analytics data' });
+    }
 });
 
 module.exports = router;
