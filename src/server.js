@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const mongoose = require("mongoose");
 const rateLimit = require('express-rate-limit');
+const { CohereClient } = require("cohere-ai");
 require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const alertRoutes = require('./routes/alerts');
@@ -49,6 +50,31 @@ app.get('/health', (req, res) => {
       uptime: process.uptime(),
     },
   });
+});
+// Initialize Cohere client
+const cohere = new CohereClient({
+  token: "OIMid1VKRxGeWKszWBCWZQpfYOKIm9t4asDsGI6G",
+});
+
+// API route for chatbot
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: "Prompt is required" });
+    }
+
+    const response = await cohere.chat({
+      model: "command-r",
+      message: prompt,
+    });
+
+    res.json({ reply: response.text });
+  } catch (error) {
+    console.error("Cohere API Error:", error);
+    res.status(500).json({ error: "Something went wrong" });
+  }
 });
 // gps data
 let logs = [
